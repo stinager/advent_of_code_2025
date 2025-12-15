@@ -1,40 +1,77 @@
 import re
 
-def get_number_with_modulo(line):
-    if line[0] == 'R':
-        num = int(line[1:])
-    elif line[0] == 'L':
-        num = -int(line[1:])
+def get_rotation_value(line):
+    """Parse a rotation line and return the signed rotation value."""
+    direction = line[0]
+    distance = int(line[1:])
+
+    if direction == 'R':
+        return distance
+    elif direction == 'L':
+        return -distance
     else:
         raise ValueError(f"Line must start with 'R' or 'L', got: {line}")
-    if abs(num) > 100:
-        return (1 if num > 0 else -1) * (abs(num) % 100)
-    return num
 
-def get_password(file):
-  code = 50
-  password = 0
-  number = 0
-  with open(file) as file:
-    for line in file:
-      number = get_number_with_modulo(line)
-      code = code + number
-      print(code)
-      if code < 0:
-        code = 100 + code
-      if code >= 100:
-        code = code - 100
-      if code == 0:
-        password += 1
-    if code > 99:
-      code = code - 99
-    if code < 0:
-      code = 99 - code
-  return password
+def get_password(file_path):
+    """Calculate password by counting how many times dial points to 0 after rotations."""
+    position = 50  # Starting position
+    password_count = 0
 
+    with open(file_path) as file:
+        for line in file:
+            line = line.strip()
+            if not line:  # Skip empty lines
+                continue
+
+            rotation = get_rotation_value(line)
+
+            # Apply rotation and normalize to 0-99 range
+            position = (position + rotation) % 100
+
+            # Count if dial points to 0
+            if position == 0:
+                password_count += 1
+
+    return password_count
+
+def get_password_part2(file):
+    position = 50
+    count = 0
+
+    with open(file) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+
+            direction = line[0]
+            distance = int(line[1:])
+            if direction == 'R':
+                # Moving right (clockwise)
+                # Check all positions from position+1 to position+distance-1
+                for d in range(1, distance):
+                    if (position + d) % 100 == 0:
+                        count += 1
+                position = (position + distance) % 100
+            else:  # 'L'
+                # Moving left (counter-clockwise)
+                # Check all positions from position-1 down to position-distance+1
+                for d in range(1, distance):
+                    if (position - d) % 100 == 0:
+                        count += 1
+                position = (position - distance) % 100
+
+            # Check if we end at 0
+            if position == 0:
+                count += 1
+    return count
 
 if __name__ == "__main__":
     print("---Pre Test---")
     print("Password: ", get_password('test.txt'))
     print("---Part One---")
     print("Password: ", get_password('input-day01.txt'))
+    print("---Part Two Test---")
+    print("Password: ", get_password_part2('test.txt'))
+    print("---Part Two---")
+    print("Password: ", get_password_part2('input-day01.txt'))
